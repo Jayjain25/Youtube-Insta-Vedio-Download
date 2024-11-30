@@ -1,1 +1,6 @@
-dakdka
+python==3.9  # specify version here if needed
+yt-dlp
+instaloader==4.9.10
+streamlit==1.20.0
+pandas==1.5.3
+numpy==1.23.5
