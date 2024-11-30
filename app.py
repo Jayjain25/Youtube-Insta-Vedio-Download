@@ -1,5 +1,5 @@
 import streamlit as st
-import yt-dlp as youtube_dl
+import yt_dlp as youtube_dl
 import instaloader
 import os
 
