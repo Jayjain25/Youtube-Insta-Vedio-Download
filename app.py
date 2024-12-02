@@ -1,6 +1,7 @@
 import streamlit as st
 import yt_dlp as youtube_dl
 import instaloader
+import tempfile
 import os
 
 # Function to get available formats for YouTube using yt-dlp
@@ -14,17 +15,17 @@ def get_youtube_formats(url):
             'noplaylist': True,  # Don't download playlists
             'skip_download': True  # Skip actual download, just fetch formats
         }
-        
+
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             result = ydl.extract_info(url, download=False)
             formats = result.get('formats', [])
-            
+
             # Creating a list of available resolutions
             available_formats = []
             for f in formats:
                 if 'format_note' in f:
                     available_formats.append((f['format_note'], f['format_id']))
-            
+
             return available_formats
     except Exception as e:
         st.error(f"Error: {e}")
@@ -34,32 +35,42 @@ def get_youtube_formats(url):
 def download_youtube_video(url, format_id):
     try:
         ydl_opts = {
-            'quiet': False,  # Show logs for debugging
+            'quiet': True,  # Suppress logs
             'format': format_id,  # Select the specified format ID
-            'outtmpl': 'downloads/%(title)s.%(ext)s',  # Download path and filename format
-            'noplaylist': True,  # Don't download playlists
         }
 
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            st.success(f"Downloaded: {info_dict['title']}")
+        with tempfile.TemporaryDirectory() as temp_dir:
+            ydl_opts['outtmpl'] = os.path.join(temp_dir, '%(title)s.%(ext)s')
+            
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                info_dict = ydl.extract_info(url, download=True)
+                file_path = os.path.join(temp_dir, f"{info_dict['title']}.{info_dict['ext']}")
+                return file_path, info_dict['title']
     except Exception as e:
         st.error(f"Error: {e}")
+        return None, None
 
 # Function to download Instagram video/reel
 def download_instagram_video(url):
     loader = instaloader.Instaloader()
     try:
-        post = loader.get_post(url, target='')
-        video_url = post.url  # Instagram post URL
-        st.video(video_url)   # You can play the video directly in the app
-        st.write(f"Download URL: {video_url}") # For direct download link
+        with tempfile.TemporaryDirectory() as temp_dir:
+            loader.download_post(instaloader.Post.from_shortcode(loader.context, url.split("/")[-2]), target=temp_dir)
+            video_file = [f for f in os.listdir(temp_dir) if f.endswith('.mp4')]
+
+            if video_file:
+                file_path = os.path.join(temp_dir, video_file[0])
+                return file_path, video_file[0]
+            else:
+                st.error("No video file found in the post.")
+                return None, None
     except Exception as e:
         st.error(f"Error: {str(e)}")
+        return None, None
 
 # Streamlit app interface
 def main():
-    st.title('YouTube & Instagram Video/ Reel Downloader')
+    st.title('YouTube & Instagram Video/Reel Downloader')
 
     # Select platform
     platform = st.selectbox("Choose a platform", ['YouTube', 'Instagram'])
@@ -71,23 +82,40 @@ def main():
         if url:
             st.write("Fetching available resolutions...")
             available_formats = get_youtube_formats(url)
-            
+
             if available_formats:
                 # Display available formats to select from
                 format_options = [f"{resolution} ({format_id})" for resolution, format_id in available_formats]
                 selected_format = st.selectbox("Select format", format_options)
-                
+
                 # Extract the format_id from the selected option
                 selected_format_id = available_formats[format_options.index(selected_format)][1]
 
                 if st.button("Download Video"):
                     with st.spinner('Downloading...'):
-                        download_youtube_video(url, selected_format_id)
+                        file_path, file_name = download_youtube_video(url, selected_format_id)
+                        if file_path:
+                            with open(file_path, "rb") as file:
+                                st.download_button(
+                                    label="Download Video",
+                                    data=file,
+                                    file_name=file_name,
+                                    mime="video/mp4"
+                                )
 
     elif platform == 'Instagram':
         if url:
-            st.write("Fetching Instagram video/reel...")
-            download_instagram_video(url)
+            if st.button("Download Video"):
+                with st.spinner('Downloading...'):
+                    file_path, file_name = download_instagram_video(url)
+                    if file_path:
+                        with open(file_path, "rb") as file:
+                            st.download_button(
+                                label="Download Video",
+                                data=file,
+                                file_name=file_name,
+                                mime="video/mp4"
+                            )
 
 # Run the app
 if __name__ == "__main__":
