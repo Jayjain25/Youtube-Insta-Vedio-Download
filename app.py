@@ -13,16 +13,20 @@ def download_youtube_video(url, format_id, download_dir):
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
+            # Construct file path
             file_path = os.path.join(download_dir, f"{info_dict['title']}.{info_dict['ext']}")
-            
+            print(f"Downloaded file path: {file_path}")  # Debug print to verify path
+
             # Check if the file exists
             if os.path.exists(file_path):
                 return file_path, f"{info_dict['title']}.{info_dict['ext']}"
             else:
                 st.error("File not found after download!")
+                print("File does not exist after download!")  # Debug print
                 return None, None
     except Exception as e:
         st.error(f"Error: {e}")
+        print(f"Exception occurred: {e}")  # Debug print
         return None, None
 
 # Streamlit app interface
