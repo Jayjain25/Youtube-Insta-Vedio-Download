@@ -111,6 +111,7 @@ import streamlit as st
 import yt_dlp as youtube_dl
 import instaloader
 import os
+import shutil
 
 # Function to get available formats for YouTube using yt-dlp
 def get_youtube_formats(url):
@@ -157,7 +158,11 @@ def download_youtube_video(url, format_id, download_path):
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
+            file_path = os.path.join(download_path, f"{info_dict['title']}.{info_dict['ext']}")
             st.success(f"Downloaded: {info_dict['title']} to {download_path}")
+            
+            # Return the file path for download link
+            return file_path
     except youtube_dl.DownloadError as e:
         st.error(f"Error: Download error occurred - {e}")
     except youtube_dl.ExtractorError as e:
@@ -176,11 +181,10 @@ def download_instagram_video(url, download_path):
         st.video(video_url)   # You can play the video directly in the app
         st.write(f"Download URL: {video_url}")  # For direct download link
 
-        # Download video to the chosen path (simulating direct download)
-        # Here, we assume the video is downloaded via a browser or mobile app,
-        # since this code snippet does not support direct download via Python for Instagram due to API limitations.
+        # Note: Direct download of Instagram videos requires interaction with the browser or a third-party tool.
 
         st.success(f"Instagram video download link generated: {video_url}")
+        return video_url  # This is just the URL, not the actual downloaded file
     except instaloader.exceptions.InstaloaderException as e:
         st.error(f"Error: Instagram download failed - {str(e)}")
     except Exception as e:
@@ -199,12 +203,8 @@ def main():
     # Choose download path: PC or Mobile (simplified version)
     download_type = st.radio("Select download location", ["PC", "Mobile"])
 
-    # Set download paths based on type
-    if download_type == "PC":
-        download_path = os.path.expanduser('~/Downloads')  # Downloads folder for PC
-    elif download_type == "Mobile":
-        # Assuming mobile has a similar accessible directory
-        download_path = os.path.expanduser('~/Downloads')  # Replace with appropriate path for mobile if needed
+    # Set download path based on type
+    download_path = os.path.expanduser('~/Downloads')  # Default downloads folder
 
     if platform == 'YouTube':
         if url:
@@ -221,14 +221,24 @@ def main():
 
                 if st.button("Download Video"):
                     with st.spinner('Downloading...'):
-                        download_youtube_video(url, selected_format_id, download_path)
+                        downloaded_file_path = download_youtube_video(url, selected_format_id, download_path)
+                        if downloaded_file_path:
+                            # Provide a link for downloading the file
+                            st.download_button(
+                                label="Download Video",
+                                data=open(downloaded_file_path, "rb").read(),
+                                file_name=os.path.basename(downloaded_file_path),
+                                mime="video/mp4"
+                            )
 
     elif platform == 'Instagram':
         if url:
             st.write("Fetching Instagram video/reel...")
-            download_instagram_video(url, download_path)
+            video_url = download_instagram_video(url, download_path)
+            if video_url:
+                # Provide a link for downloading the Instagram video (this is a placeholder)
+                st.write(f"Download the Instagram video directly from [this link]({video_url}).")
 
 # Run the app
 if __name__ == "__main__":
     main()
-
