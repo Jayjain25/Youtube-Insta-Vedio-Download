@@ -3,8 +3,10 @@ import os
 import streamlit as st
 
 # Function to download a YouTube video
-def download_youtube_video(url, format_id, download_dir):
+def download_youtube_video(url, format_id):
     try:
+        # Use the current working directory as the default download directory
+        download_dir = os.getcwd()
         ydl_opts = {
             'quiet': True,
             'format': format_id,
@@ -36,7 +38,6 @@ def main():
     st.title("YouTube Video Downloader")
 
     url = st.text_input("Enter YouTube video URL:")
-    download_dir = st.text_input("Enter download directory (leave blank for current directory):", os.getcwd())
 
     if st.button("Get Available Formats"):
         if url:
@@ -58,7 +59,7 @@ def main():
 
                 if st.button("Download Video"):
                     selected_format_id = [fid for res, fid in available_formats if f"{res} ({fid})" == selected_format][0]
-                    file_path = download_youtube_video(url, selected_format_id, download_dir)
+                    file_path = download_youtube_video(url, selected_format_id)
                     if file_path:
                         st.write(f"Download complete. File saved to: {file_path}")
                         # Optionally add a link to download the file
