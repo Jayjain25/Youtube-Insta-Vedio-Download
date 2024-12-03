@@ -54,16 +54,19 @@ def main():
             available_formats = [(f['format_note'], f['format_id']) for f in formats if 'format_note' in f]
 
             if available_formats:
+                # Display the format options to the user
                 format_options = [f"{res} ({fid})" for res, fid in available_formats]
                 selected_format = st.selectbox("Select format:", format_options)
 
-                if st.button("Download Video"):
-                    selected_format_id = [fid for res, fid in available_formats if f"{res} ({fid})" == selected_format][0]
-                    file_path = download_youtube_video(url, selected_format_id)
-                    if file_path:
-                        st.write(f"Download complete. File saved to: {file_path}")
-                        # Optionally add a link to download the file
-                        st.download_button("Download File", file_path)
+                # Show the download button only after a format is selected
+                if selected_format:
+                    if st.button("Download Video"):
+                        selected_format_id = [fid for res, fid in available_formats if f"{res} ({fid})" == selected_format][0]
+                        file_path = download_youtube_video(url, selected_format_id)
+                        if file_path:
+                            st.write(f"Download complete. File saved to: {file_path}")
+                            # Optionally add a link to download the file
+                            st.download_button("Download File", file_path)
             else:
                 st.warning("No available formats found.")
         else:
